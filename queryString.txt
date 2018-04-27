@@ -1,0 +1,38 @@
+query{
+  %s: repositoryOwner (login: %s){
+    ...Info
+  }
+}
+
+fragment Info on RepositoryOwner{
+  login
+  repositories(first: 100){
+    totalCount
+      edges {
+        node {
+          name
+          defaultBranchRef{
+            target{
+              ...on Commit{
+                history(since: "2016-01-01T00:00:00+00:00") {
+                	totalCount
+              	}
+              }
+            }
+          }
+          issues(first:1){
+            totalCount
+          }
+          pullRequests(first:1){
+            totalCount
+          }
+          releases(first:1){
+            totalCount
+          }
+        }
+      }
+
+  }
+
+}
+
