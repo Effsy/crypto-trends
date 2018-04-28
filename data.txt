@@ -1,1 +1,0 @@
-query{ davZzar: user (login: "davZZar"){ ...UserInfo } Effsy: user (login: "Effsy"){ ...UserInfo } }fragment UserInfo on User{login bio}
