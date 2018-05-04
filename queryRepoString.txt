@@ -1,0 +1,67 @@
+query ($cryptoLogin: String!, $cursorId: String){
+  repositoryOwner (login: $cryptoLogin){
+    repositories(first: 100, after: $cursorId, affiliations: OWNER){
+      totalCount
+        edges {
+          node {
+            name
+            forkCount
+            parent{
+              defaultBranchRef{
+                target{
+                  ...on Commit{
+                    history(since: "2016-01-01T00:00:00+00:00") {
+                        totalCount
+                    }
+                  }
+                }
+              }
+            }
+            defaultBranchRef{
+              target{
+                ...on Commit{
+                  history(since: "2016-01-01T00:00:00+00:00") {
+                      totalCount
+                  }
+                }
+              }
+            }
+            issues(first:1){
+              totalCount
+              edges{
+                node{
+                  comments{
+                    totalCount
+                  }
+                }
+              }
+            }
+            pullRequests(first:1){
+              totalCount
+              edges{
+                node{
+                  comments{
+                    totalCount
+                  }
+                }
+              }
+            }
+            releases(first:1){
+              totalCount
+            }
+            stargazers{
+              totalCount
+            }
+            watchers{
+              totalCount
+            }
+          }
+        }
+      pageInfo {
+        endCursor
+        hasNextPage
+      }
+    }
+  }
+}
+

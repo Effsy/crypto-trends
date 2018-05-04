@@ -3,7 +3,7 @@ import requests
 import json
 import githubQuery
 
-githubQuery.queryGithubCrypto()
+githubQuery.queryRepos()
 
 
 #For each cryptocurrency:

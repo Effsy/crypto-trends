@@ -1,22 +1,30 @@
 import requests
 import json
 
-def queryGithubCrypto():
+url = 'https://api.github.com/graphql'
+api_token = "e113252703413366918d58623340249131da7586"
+headers = {'Authorization': 'token %s' % api_token}
 
-    # Make list of crypto names and organisation/user names (single repo - later multiple repos)
-    with open('cryptoInfo.json') as f:
-        cryptoLogins = json.load(f)
+# Make list of crypto names and organisation/user names (single repo - later multiple repos)
+with open('cryptoInfo.json') as f:
+    cryptoLogins = json.load(f)
 
-    url = 'https://api.github.com/graphql'
-    api_token = "e113252703413366918d58623340249131da7586"
-    headers = {'Authorization': 'token %s' % api_token}
+def queryUsers():
+    # All cryptocurrency data for a single update
+    rawDataJSON = {}
 
+    #for name in cryptoLogins:
+     #   with open('queryUserString.txt') as queryStringF:
+
+
+
+def queryRepos():
     # All cryptocurrency data for a single update
     rawDataJSON = {}
 
     for name in cryptoLogins:
 
-        with open('queryString.txt') as queryStringF:
+        with open('queryRepoString.txt') as queryStringF:
             queryString = queryStringF.read().replace('\n', '')  # Improve serialisation?
 
         # List of repos for the current cryptocurrency
@@ -29,7 +37,7 @@ def queryGithubCrypto():
         while (moreRepos):
             r = requests.post(url=url, json=json_, headers=headers)
             resultJSON = json.loads(r.text)
-
+            print(resultJSON)
             # Pagination variables - save to check for more queries
             moreRepos = resultJSON['data']['repositoryOwner']['repositories']['pageInfo']['hasNextPage']
             cursor = resultJSON['data']['repositoryOwner']['repositories']['pageInfo']['endCursor']
@@ -47,8 +55,7 @@ def queryGithubCrypto():
     with open('rawData.json', 'w') as f:
         json.dump(rawDataJSON, f)
 
-    processData()
-
+    processRepoData()
 
     # # For testing - print to console
     # with open('rawData.json') as f, open('log.json', 'w') as g:
@@ -59,7 +66,10 @@ def queryGithubCrypto():
     #     json.dump(json.loads(json.dumps(json.load(f), indent = 4)), g)
 
 
-def processData():
+#def processUserData():
+
+
+def processRepoData():
 
     processedDataJSON = {}
 
@@ -72,18 +82,34 @@ def processData():
             issues = 0
             pullRequests = 0
             releases = 0
+            forkCount = 0
+            watchers = 0
+            stargazers = 0
+            #parent =
 
             for repo in rawDataJSON[crypto]:
                 #Check if repo is not empty - May need revision
                 if(repo['node']['defaultBranchRef'] != None):
+                    print(repo)
                     repos += 1
                     commits += repo['node']['defaultBranchRef']['target']['history']['totalCount']
                     issues += repo['node']['issues']['totalCount']
                     pullRequests += repo['node']['pullRequests']['totalCount']
                     releases += repo['node']['releases']['totalCount']
+                    forkCount += repo['node']['forkCount']
+                    watchers += repo['node']['watchers']['totalCount']
+                    stargazers += repo['node']['stargazers']['totalCount']
+                    print(repo['node']['defaultBranchRef']['target']['history']['totalCount'])
 
-            processedDataJSON[crypto] = {'repos': repos, 'commits': commits, 'issues': issues, 'pullRequests': pullRequests, 'releases': releases}
+                    # Don't include previous commits for forks
+                    if(repo['node']['parent'] != None):
+                        commits -= repo['node']['parent']['defaultBranchRef']['target']['history']['totalCount']
 
+                        print(repo['node']['parent']['defaultBranchRef']['target']['history']['totalCount'])
+
+            processedDataJSON[crypto] = {'repos': repos, 'commits': commits, 'issues': issues, 'pullRequests': pullRequests, 'releases': releases, 'forkCount': forkCount, 'watchers': watchers, 'stargazers': stargazers}
+#"ethereum": "ethereum", "bitcoin": "bitcoin", "ripple": "ripple",
     with open('processedData.json', 'w') as g:
         json.dump(processedDataJSON, g)
+        #print(json.dumps(json.load(g), indent=4))
         print(processedDataJSON)
