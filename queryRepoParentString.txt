@@ -1,14 +1,17 @@
-parent{
-  defaultBranchRef{
-    target{
-      ...on Commit{a
-
-
-
-        history(since: "2016-01-01T00:00:00+00:00") {
-            totalCount
-        }
-      }
+query ($cryptoLogin: String!, $name: String!, $date: GitTimestamp!){
+  repositoryOwner (login: $cryptoLogin){
+    repository(name: $name){
+      parent{
+				defaultBranchRef{
+            target{
+              ...on Commit{
+                history(until: $date) {
+                    totalCount
+                }
+              }
+            }
+          }
+ 			 }
     }
   }
 }

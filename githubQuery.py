@@ -24,31 +24,46 @@ def queryRepos():
 
     for name in cryptoLogins:
 
-        with open('queryRepoString.txt') as queryStringF:
+        with open('queryRepoString.txt') as queryStringF, open('queryRepoParentString.txt') as queryParentStringF:
             queryString = queryStringF.read().replace('\n', '')  # Improve serialisation?
-
+            queryParentString = queryParentStringF.read().replace('\n', '')  # Improve serialisation?
         # List of repos for the current cryptocurrency
         repoDataList = []
 
-        json_ = {'query': queryString, 'variables': {'cryptoLogin': cryptoLogins[name]}}
+        queryJSON = {'query': queryString, 'variables': {'cryptoLogin': cryptoLogins[name]}}
+        queryParentJSON = {'query': queryParentString, 'variables': {'cryptoLogin': cryptoLogins[name]}}
         moreRepos = True
 
         # Keep performing queries on current cryptocurrency until no repos remain
         while (moreRepos):
-            r = requests.post(url=url, json=json_, headers=headers)
+            r = requests.post(url=url, json=queryJSON, headers=headers)
             resultJSON = json.loads(r.text)
-            print(resultJSON)
+
             # Pagination variables - save to check for more queries
             moreRepos = resultJSON['data']['repositoryOwner']['repositories']['pageInfo']['hasNextPage']
             cursor = resultJSON['data']['repositoryOwner']['repositories']['pageInfo']['endCursor']
 
             # Used by the query for pagination
-            json_['variables']['cursorId'] = cursor
-            # Push results (repos) in list to be stored later
+            queryJSON['variables']['cursorId'] = cursor
+
+
             for repoNode in resultJSON['data']['repositoryOwner']['repositories']['edges']:
+                # Query again if the repo is a fork - Get parent commit data
+                if(repoNode['node']['isFork']):
+                    queryParentJSON['variables']['name'] = repoNode['node']['name']
+                    queryParentJSON['variables']['date'] = repoNode['node']['createdAt']
+
+                    r = requests.post(url=url, json=queryParentJSON, headers=headers)
+                    resultJSON = json.loads(r.text)
+
+                    repoNode['node']['parent'] = resultJSON['data']['repositoryOwner']['repository']['parent']
+                else:
+                    repoNode['node']['parent'] = None
+
+                # Push results (repos) in list to be stored later
                 repoDataList.append(repoNode)
 
-        # After all repos are queried, create new json element for cryptocurrency
+        # After all repos are queried, create new json element for the queried cryptocurrency
         rawDataJSON[name] = repoDataList
 
     # Write results to file
@@ -90,7 +105,6 @@ def processRepoData():
             for repo in rawDataJSON[crypto]:
                 #Check if repo is not empty - May need revision
                 if(repo['node']['defaultBranchRef'] != None):
-                    print(repo)
                     repos += 1
                     commits += repo['node']['defaultBranchRef']['target']['history']['totalCount']
                     issues += repo['node']['issues']['totalCount']
@@ -99,16 +113,19 @@ def processRepoData():
                     forkCount += repo['node']['forkCount']
                     watchers += repo['node']['watchers']['totalCount']
                     stargazers += repo['node']['stargazers']['totalCount']
-                    print(repo['node']['defaultBranchRef']['target']['history']['totalCount'])
 
                     # Don't include previous commits for forks
                     if(repo['node']['parent'] != None):
-                        commits -= repo['node']['parent']['defaultBranchRef']['target']['history']['totalCount']
 
-                        print(repo['node']['parent']['defaultBranchRef']['target']['history']['totalCount'])
+                        # Commit timing/pushing/other time considerations cause anomalies. Only subtract commits if "parentCommits" < "commits"
+                        if(repo['node']['parent']['defaultBranchRef']['target']['history']['totalCount'] > repo['node']['defaultBranchRef']['target']['history']['totalCount']):
+                            commits -= repo['node']['defaultBranchRef']['target']['history']['totalCount']
+                        else:
+                            commits -= repo['node']['parent']['defaultBranchRef']['target']['history']['totalCount']
+
 
             processedDataJSON[crypto] = {'repos': repos, 'commits': commits, 'issues': issues, 'pullRequests': pullRequests, 'releases': releases, 'forkCount': forkCount, 'watchers': watchers, 'stargazers': stargazers}
-#"ethereum": "ethereum", "bitcoin": "bitcoin", "ripple": "ripple",
+
     with open('processedData.json', 'w') as g:
         json.dump(processedDataJSON, g)
         #print(json.dumps(json.load(g), indent=4))

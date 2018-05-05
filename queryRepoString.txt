@@ -6,21 +6,12 @@ query ($cryptoLogin: String!, $cursorId: String){
           node {
             name
             forkCount
-            parent{
-              defaultBranchRef{
-                target{
-                  ...on Commit{
-                    history(since: "2016-01-01T00:00:00+00:00") {
-                        totalCount
-                    }
-                  }
-                }
-              }
-            }
+            isFork
+            createdAt
             defaultBranchRef{
               target{
                 ...on Commit{
-                  history(since: "2016-01-01T00:00:00+00:00") {
+                  history(since: "1990-01-01T00:00:00+00:00") {
                       totalCount
                   }
                 }
